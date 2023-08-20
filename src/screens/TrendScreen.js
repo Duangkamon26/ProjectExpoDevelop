@@ -233,9 +233,13 @@ const styles = StyleSheet.create({
         color: '#51087E',
     },
     investmentItem: {
-        padding: 8,
-        borderBottomWidth: 1,
-        borderBottomColor: '#ccc',
+        backgroundColor: '#C8A2C8',
+        borderRadius: 10,
+        padding: 15,
+        marginBottom: 10,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
     },
     roundTitle: {
         fontSize: 16,
