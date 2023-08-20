@@ -1,0 +1,24 @@
+import * as FileSystem from 'expo-file-system';
+import * as SQLite from 'expo-sqlite';
+
+const copyDatabaseFile = async () => {
+  const dbName = 'your-database.db';
+  const dbDirectory = FileSystem.documentDirectory + 'SQLite';
+
+  const dbExists = await FileSystem.getInfoAsync(dbDirectory + '/' + dbName);
+  if (!dbExists.exists) {
+    const assetUri = require('./assets/database01.db');
+    const assetPath = Expo.FileSystem.cacheDirectory + 'database01.db';
+    await FileSystem.downloadAsync(assetUri, assetPath);
+    await FileSystem.makeDirectoryAsync(dbDirectory, { intermediates: true });
+    await FileSystem.moveAsync({
+      from: assetPath,
+      to: dbDirectory + '/' + dbName,
+    });
+  }
+
+  return SQLite.openDatabase(dbName);
+};
+
+// เรียกใช้ฟังก์ชันเพื่อเปิดฐานข้อมูล SQLite ที่คัดลอกและวางไว้ในพื้นที่เก็บข้อมูลของ Expo
+const db = await copyDatabaseFile();
