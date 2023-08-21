@@ -4,6 +4,7 @@ import * as SQLite from 'expo-sqlite';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import InvestmentDetails from './InvestmentDetails';
+import { useNavigation } from '@react-navigation/native';
 
 
 
@@ -96,7 +97,7 @@ fetchInvestmentsSync();
 
 
 
-const FirstScreen = ({ navigation }) => {
+const FirstScreen = ({ navigation , route }) => {
 
     //เรียกใช้ตารางการลงทุน
     // createTableInvestment();
@@ -106,7 +107,87 @@ const FirstScreen = ({ navigation }) => {
     const [investments, setInvestments] = useState([]);
     const [loading, setLoading] = useState(false);
     const [rounds, setRounds] = useState([]);
-    
+    const [roundsData, setRoundsData] = useState([]);
+    // const { investmentId, investmentName } = route.params;
+    const [selectedValue, setSelectedValue] = useState('');
+    const [showDropdown, setShowDropdown] = useState(false);
+    // const { id } = route.params;
+
+    const toggleDropdown = () => {
+        setShowDropdown(!showDropdown);
+    };
+
+
+    const fetchRoundsData = () => {
+        return new Promise((resolve, reject) => {
+            db.transaction((tx) => {
+                tx.executeSql(
+                    'SELECT * FROM rounds WHERE investment_id = ?;',
+                    [investments], // ใช้ investmentId ที่ถูกส่งมาจากหน้า ListScreen
+                    (_, { rows }) => {
+                        const fetchedRoundsData = [];
+                        const numRounds = rows.length;
+
+                        for (let i = 0; i < numRounds; i++) {
+                            const round = rows.item(i);
+                            const opendate = moment(round.opendate, 'YYYY-MM-DD').toDate();
+                            const enddate = round.is_closed ? moment(round.enddate, 'YYYY-MM-DD').toDate() : null;
+
+                            fetchedRoundsData.push({
+                                id: round.id,
+                                investment_id: round.investment_id,
+                                opendate: opendate,
+                                enddate: enddate,
+                                isRoundClosed: !!round.is_closed,
+                                // Add other properties you need from the database
+                            });
+                        }
+
+                        // Resolve the promise with the fetched data
+                        resolve(fetchedRoundsData);
+                    },
+                    (_, error) => {
+                        // Reject the promise if there's an error
+                        reject(error);
+                    }
+                );
+            });
+        });
+    };
+
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const rounds = await fetchRoundsData();
+                setRoundsData(rounds);
+
+                await Promise.all(promises);
+            } catch (error) {
+                console.error('Error fetching data:', error);
+            }
+        };
+
+        fetchData();
+    }, []);
+
+
+    const handleEditRoundPress = (roundId) => {
+        navigation.navigate('EditRound', { roundId });
+    };
+
+
+    const renderRoundItem = ({ item }) => {
+        return (
+            <TouchableOpacity style={styles.cardRound}>
+                <Text style={styles.roundId} onPress={() => handleEditRoundPress(item.id)}>
+                    การลงทุน ID {item.id}
+                </Text>
+               
+            </TouchableOpacity>
+        );
+    };
+
+
     const fetchRounds = () => {
         db.transaction((tx) => {
           tx.executeSql(
@@ -294,7 +375,15 @@ const FirstScreen = ({ navigation }) => {
             style={{alignSelf:'center',backgroundColor:'#8D538D',borderRadius:7,padding:4}} onPress={() => navigation.navigate('EditInvestment', { id: item.id })}>
               <Text style={{color:'white',fontWeight:'600'}}>เเก้ไขข้อมูลการลงทุน</Text>
             </TouchableOpacity>
+            
           </View>
+          <TouchableOpacity style={styles.cardRound}>
+                <Text style={styles.roundId} onPress={() => handleEditRoundPress(item.id)}>
+                    การลงทุน ID {item.id}
+                </Text>
+               
+            </TouchableOpacity>
+         
         </TouchableOpacity>
       );
       
@@ -307,6 +396,7 @@ const FirstScreen = ({ navigation }) => {
                     keyExtractor={(item) => item.id.toString()}
                     style={styles.list}
                 />
+               
             ) : (
                 <View>
                     <TouchableOpacity onPress={handleImageClick}>
@@ -320,7 +410,6 @@ const FirstScreen = ({ navigation }) => {
                     </TouchableOpacity>
                 </View>
             )}
-
 
             <TouchableOpacity
                 style={styles.firstButton}
@@ -470,6 +559,261 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         textAlign: 'center',
     },
+    
+
+    // container: {
+    //     flex: 1,
+    //     padding: 16,
+    //     backgroundColor: '#F5F5F5',
+    // },
+    // button: {
+    //     backgroundColor: '#FF6347',
+    //     paddingVertical: 10,
+    //     paddingHorizontal: 20,
+    //     borderRadius: 8,
+    //     width: 100,
+    // },
+    // buttonText: {
+    //     color: 'white',
+    //     fontWeight: 'bold',
+    // },
+    // title: {
+    //     fontSize: 24,
+    //     fontWeight: 'bold',
+    //     marginBottom: 16,
+    //     textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    //     textShadowOffset: { width: 2, height: 2 },
+    //     textShadowRadius: 4,
+    //     color: '#9400D3',
+    // },
+    // cardRound: {
+    //     borderWidth: 1,
+    //     borderColor: '#E0E0E0',
+    //     borderRadius: 8,
+    //     padding: 16,
+    //     marginBottom: 16,
+    //     backgroundColor: '#FFFAFA',
+    //     shadowColor: '#000',
+    //     shadowOffset: { width: 0, height: 2 },
+    //     shadowOpacity: 0.2,
+    //     shadowRadius: 2,
+    //     elevation: 2,
+    // },
+    // roundId: {
+    //     fontSize: 18,
+    //     fontWeight: 'bold',
+    //     marginBottom: 8,
+    //     color: '#3333FF', 
+    //     headerTintColor: '#9400D3'
+    //     // textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    //     // textShadowOffset: { width: 2, height: 2 },
+    //     // textShadowRadius: 4,
+    // },
+    // date: {
+    //     fontSize: 16,
+    //     marginBottom: 8,
+    //     color: '#555',
+    // },
+    // amount: {
+    //     fontSize: 16,
+    //     marginBottom: 8,
+    //     color: '#006600',
+    // },
+    // chartProductBtn: {
+    //     flexDirection: 'row',
+    //     alignItems: 'center',
+    //     backgroundColor: '#007ACC',
+    //     borderRadius: 4,
+    //     paddingHorizontal: 8,
+    //     paddingVertical: 4,
+    //     justifyContent: 'center',
+    //     width: 120,
+    //     marginTop: 8,
+    // },
+    // buttonText: {
+    //     color: 'white',
+    //     marginLeft: 4,
+    // },
+    // disabledButtonText: {
+    //     opacity: 0.5,
+    // },
+    // sectionTitle: {
+    //     fontSize: 19,
+    //     fontWeight: 'bold',
+    //     marginTop: 16,
+    //     marginBottom: 8,
+    //     color: '#333',
+    // },
+    // itemContainerIncome: {
+    //     backgroundColor: '#D4E6F1',
+    //     padding: 10,
+    //     marginBottom: 5,
+    //     borderRadius: 5,
+    // },
+    // itemText: {
+    //     fontSize: 16,
+    //     color: '#333',
+    // },
+    // itemText1: {
+    //     fontSize: 17,
+    //     fontWeight: 'bold',
+    //     color: '#333',
+    // },
+    // itemContainerExpense: {
+    //     backgroundColor: '#F5B7B1',
+    //     padding: 10,
+    //     marginBottom: 5,
+    //     borderRadius: 5,
+    // },
+    // itemContainerProduct: {
+    //     backgroundColor: '#D5F5E3',
+    //     padding: 10,
+    //     marginBottom: 5,
+    //     borderRadius: 5,
+    // },
+    // chartInvestmentBtn: {
+    //     flexDirection: 'row',
+    //     alignItems: 'center',
+    //     backgroundColor: '#FF1493',
+    //     borderRadius: 4,
+    //     paddingHorizontal: 8,
+    //     paddingVertical: 4,
+    //     justifyContent: 'center',
+    //     width: 160,
+    //     marginTop: 16,
+    // },
+    // itemTextTotal: {
+    //     fontSize: 16,
+    //     color: '#333',
+    //     marginTop: 8,
+    // },
+    // itemContainer1: {
+    //     borderWidth: 2,
+    //     borderRadius: 8,
+    //     borderColor: '#3300FF',
+    //     padding: 10,
+    //     marginBottom: 5,
+    //     backgroundColor: '#FFFAFA',
+    //     shadowColor: '#000',
+    //     shadowOffset: { width: 0, height: 2 },
+    //     shadowOpacity: 0.2,
+    //     shadowRadius: 2,
+    //     elevation: 2,
+    // },
+    // itemContainer2: {
+    //     borderWidth: 2,
+    //     borderRadius: 8,
+    //     borderColor: '#FF3366',
+    //     padding: 10,
+    //     marginBottom: 5,
+    //     backgroundColor: '#FFFAFA',
+    //     shadowColor: '#000',
+    //     shadowOffset: { width: 0, height: 2 },
+    //     shadowOpacity: 0.2,
+    //     shadowRadius: 2,
+    //     elevation: 2,
+    // },
+    // itemContainer3: {
+    //     borderWidth: 2,
+    //     borderRadius: 8,
+    //     padding: 10,
+    //     marginBottom: 5,
+    //     backgroundColor: 'white',
+    //     elevation: 2,
+    // },
+
+    // button: {
+    //     backgroundColor: '#FF6347',
+    //     paddingVertical: 10,
+    //     paddingHorizontal: 20,
+    //     borderRadius: 8,
+    //     width: 100,
+    // },
+    // buttonText: {
+    //     color: 'white',
+    //     fontWeight: 'bold',
+    // },
+    // title: {
+    //     fontSize: 24,
+    //     fontWeight: 'bold',
+    //     marginBottom: 16,
+    //     textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    //     textShadowOffset: { width: 2, height: 2 },
+    //     textShadowRadius: 4,
+    //     color: '#9400D3',
+    // },
+    // cardRound: {
+    //     borderWidth: 1,
+    //     borderColor: '#E0E0E0',
+    //     borderRadius: 8,
+    //     padding: 16,
+    //     marginBottom: 16,
+    //     backgroundColor: '#FFFAFA',
+    //     shadowColor: '#000',
+    //     shadowOffset: { width: 0, height: 2 },
+    //     shadowOpacity: 0.2,
+    //     shadowRadius: 2,
+    //     elevation: 2,
+    // },
+    // roundId: {
+    //     fontSize: 18,
+    //     fontWeight: 'bold',
+    //     marginBottom: 8,
+    //     color: '#3333FF', 
+    //     headerTintColor: '#9400D3'
+    //     // textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    //     // textShadowOffset: { width: 2, height: 2 },
+    //     // textShadowRadius: 4,
+    // },
+    // date: {
+    //     fontSize: 16,
+    //     marginBottom: 8,
+    //     color: '#555',
+    // },
+    // amount: {
+    //     fontSize: 16,
+    //     marginBottom: 8,
+    //     color: '#006600',
+    // },
+    // buttonText: {
+    //     color: 'white',
+    //     marginLeft: 4,
+    // },
+    // disabledButtonText: {
+    //     opacity: 0.5,
+    // },
+    // sectionTitle: {
+    //     fontSize: 19,
+    //     fontWeight: 'bold',
+    //     marginTop: 16,
+    //     marginBottom: 8,
+    //     color: '#333',
+    // },
+    // itemText: {
+    //     fontSize: 16,
+    //     color: '#333',
+    // },
+    // itemText1: {
+    //     fontSize: 17,
+    //     fontWeight: 'bold',
+    //     color: '#333',
+    // },
+    // chartInvestmentBtn: {
+    //     flexDirection: 'row',
+    //     alignItems: 'center',
+    //     backgroundColor: '#FF1493',
+    //     borderRadius: 4,
+    //     paddingHorizontal: 8,
+    //     paddingVertical: 4,
+    //     justifyContent: 'center',
+    //     width: 160,
+    //     marginTop: 16,
+    // },
+    // itemTextTotal: {
+    //     fontSize: 16,
+    //     color: '#333',
+    //     marginTop: 8,
+    // },
 
 
 })
